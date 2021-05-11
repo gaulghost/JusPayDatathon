@@ -11,7 +11,6 @@ is.data.frame(data)
 
 # Conversion of numerical number to Date-Time Format
 data$time <- ymd_h(data$time)
-
 print(data)
 
 # Grouping Columns on the basis provided and producing new dataframe
@@ -139,7 +138,7 @@ ui <- dashboardPage(
                 box( width = 12,
                      title = "Controlling Plotting Parameters",
                      div(class = "row",
-                         div(class = "col-sm-6 col-md-4",selectInput("mid", "Merchant ID", midChoices)),
+                         div(class = "col-sm-6 col-md-4",selectInput("mid", "Merchant ID", midChoices))
                          #div(class = "col-sm-6 col-md-4",radioButtons("yFacet", "Facet Grid Y axis", yFacetgrid)),
                          #div(class = "col-sm-6 col-md-4",radioButtons("gColor", "Distinction by Class based on Color", graphColor))
                      )
@@ -278,7 +277,7 @@ server <- function(input, output) {
   observeEvent(input$mid, {
     print(input$mid)
     by_day <- group_by(data, mid, time) %>% summarise(success1 = sum(success, na.rm = TRUE), t1 = sum(t, na.rm = TRUE)) %>%
-    filter(mid == input$mid) %>% mutate(successRate = success1*100/t1)
+      filter(mid == input$mid) %>% mutate(successRate = success1*100/t1)
     print(by_day)
     
     df7 <- ggplot(data = by_day) +
@@ -313,7 +312,7 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle = 90, hjust = 1))
   })
   
-
+  
   
   # Part1 Chart
   output$rGraph1 <- renderPlot({
@@ -342,4 +341,151 @@ server <- function(input, output) {
 }
 
 shinyApp(ui, server)
+#-----------------------Calculating dip in runtime---------------------------
+data_mid <- data %>% group_by(mid, time) %>% summarise(success1 = sum(success, na.rm = TRUE), t1 = sum(t, na.rm = TRUE)) %>% mutate(successRate = success1*100/t1)
+#print(data_mid)
+#ggplot(data = data_mid) + geom_line(mapping = aes(x = time , y = successRate)) + facet_grid(. ~ mid)
 
+for (i in data$mid %>% unique()){
+  data_mid_i <- filter(data_mid, mid == i)
+  #print(data_mid_i)
+  data_mid_i.sd = sd(data_mid_i$successRate)
+  data_mid_i.mean = mean(data_mid_i$successRate)
+  data_mid_i.median = median(data_mid_i$successRate)
+  x_is_greater = TRUE;
+  for( j in 1:nrow(data_mid_i)){
+    if(data_mid_i[j,5] <= (data_mid_i.median - data_mid_i.sd)){
+      cat(sprintf("\"%s\" \"%s\"\n", i, " is going down or has a dip at "))
+      print(data_mid_i[j,2])
+      x_is_greater = FALSE
+    }
+    else if (x_is_greater == FALSE && data_mid_i[j,5] > (data_mid_i.median - data_mid_i.sd)){
+      cat(sprintf("\"%s\" \"%s\"\n", i, " has recovered at "))
+      print(data_mid_i[j,2])
+      x_is_greater = TRUE
+    }
+  }
+  print('------------------------------------------------------------------------')
+}
+
+
+#-----------------------------------------------------------------------------------
+
+data_mid <- data %>% group_by(mid, time,pg) %>% summarise(success1 = sum(success, na.rm = TRUE), t1 = sum(t, na.rm = TRUE)) %>% mutate(successRate = success1*100/t1)
+print(data_mid)
+#ggplot(data = data_mid) + geom_line(mapping = aes(x = time , y = successRate)) + facet_grid(pg ~ mid)
+
+for (i in data$mid %>% unique()){
+  data_mid_i <- filter(data_mid, mid == i)
+  #print(data_mid_i)
+  x_is_greater = TRUE;
+  
+  for(k in data_mid_i$pg %>% unique()){
+    data_mid_i_pg <- filter(data_mid_i, pg == k)
+    #print(data_mid_i_pg)
+    data_mid_i_pg.sd = sd(data_mid_i_pg$successRate)
+    data_mid_i_pg.mean = mean(data_mid_i_pg$successRate)
+    data_mid_i_pg.median = median(data_mid_i_pg$successRate)
+    x_is_greater = TRUE;
+    
+    for( j in 1:nrow(data_mid_i_pg)){
+      if(data_mid_i_pg[j,6] < (data_mid_i_pg.median - data_mid_i_pg.sd)){
+        cat(sprintf("\"%s\" \"%s\" \"%s\" \"%s\"\n", k, " of ", i, " is going down or has a dip at "))
+        print(data_mid_i[j,2])
+        x_is_greater = FALSE
+      }
+      else if (x_is_greater == FALSE && data_mid_i_pg[j,6] > (data_mid_i_pg.median - data_mid_i_pg.sd)){
+        cat(sprintf("\"%s\" \"%s\" \"%s\" \"%s\"\n", k, " of ", i, " has recovered at "))
+        print(data_mid_i[j,2])
+        x_is_greater = TRUE
+      }
+    }
+    print('------------------------------------------------------------------------')
+  }
+  print('**************************************************************************')
+}
+
+#-------------------------------DEBUG---------------------------------
+data_mid <- data %>% group_by(mid, time,pg) %>% summarise(success1 = sum(success, na.rm = TRUE), t1 = sum(t, na.rm = TRUE)) %>% mutate(successRate = success1*100/t1)
+#print(data_mid)
+#ggplot(data = data_mid) + geom_line(mapping = aes(x = time , y = successRate)) + facet_grid(pg ~ mid)
+
+for (i in data$mid %>% unique()){
+  data_mid_i <- filter(data_mid, mid == i)
+  #print(data_mid_i)
+  x_is_greater = TRUE;
+  for(k in data_mid_i$pg %>% unique()){
+    if(k == ""){
+      next
+    }
+    data_mid_i_pg <- filter(data_mid_i, pg == k)
+    #print(data_mid_i_pg)
+    data_mid_i_pg.sd = sd(data_mid_i_pg$successRate)
+    data_mid_i_pg.mean = mean(data_mid_i_pg$successRate)
+    data_mid_i_pg.median = median(data_mid_i_pg$successRate)
+    x_is_greater = TRUE;
+    if(is.na(data_mid_i_pg.sd) || is.na(data_mid_i_pg.mean) || is.na(data_mid_i_pg.median)){
+      next
+    }
+    for( j in 1:nrow(data_mid_i_pg)){
+      if(data_mid_i_pg[j,6] <= (data_mid_i_pg.median - data_mid_i_pg.sd)){
+        cat(sprintf("\"%s\" \"%s\" \"%s\" \"%s\"\n", k, " of ", i, " is going down or has a dip at "))
+        print(data_mid_i[j,2])
+        x_is_greater = FALSE
+      }
+      else if (x_is_greater == FALSE && data_mid_i_pg[j,6] > (data_mid_i_pg.median - data_mid_i_pg.sd)){
+        cat(sprintf("\"%s\" \"%s\" \"%s\" \"%s\"\n", k, " of ", i, " has recovered at "))
+        print(data_mid_i[j,2])
+        x_is_greater = TRUE
+      }
+    }
+    print('------------------------------------------------------------------------')
+  }
+  print('**************************************************************************')
+}
+
+#---------------------------------DIP IN UPI (NOT CONSIDERING MERCHANTS)-----------------
+data_upi <- data %>% group_by(time, pmt) %>% filter(pmt == "UPI") %>% summarise(success1 = sum(success, na.rm = TRUE), t1 = sum(t, na.rm = TRUE)) %>% mutate(successRate = success1*100/t1)
+#print(data_upi)
+
+data_upi.sd = sd(data_upi$successRate)
+data_upi.median = median(data_upi$successRate)
+x_is_greater = TRUE;
+
+for( i in 1:nrow(data_upi)){
+  if(data_upi[i,5] <= (data_upi.median - data_upi.sd) ){
+    cat(sprintf("\"%s\"\n", "UPI is going down or has a dip at "))
+    print(data_upi[i,1])
+    x_is_greater = FALSE
+  }
+  else if (x_is_greater == FALSE && data_upi[i,5] > (data_upi.median - data_upi.sd)){
+    cat(sprintf("\"%s\"\n", "UPI has recovered at "))
+    print(data_upi[i,1])
+    x_is_greater = TRUE
+  }
+}
+
+nrow(data_upi)
+
+#------------------------- DIP IN UPI (FOR EACH OF THE MERCHANTS) --------------------------
+data_mid_upi <- data %>% group_by(mid, time, pmt) %>% filter(pmt == "UPI") %>% summarise(success1 = sum(success, na.rm = TRUE), t1 = sum(t, na.rm = TRUE)) %>% mutate(successRate = success1*100/t1)
+print(data_mid_upi)
+for(i in data_mid_upi$mid %>% unique()){
+  data_mid_upi_i <- filter(data_mid_upi , mid == i)
+  data_mid_upi_i.sd = sd(data_mid_upi_i$successRate)
+  data_mid_upi_i.median = sd(data_mid_upi_i$successRate)
+  x_is_greater = TRUE
+  for(j in 1:nrow(data_mid_upi_i) ){
+    if(data_mid_upi_i[j,6] <= (data_mid_upi_i.median - data_mid_upi_i.sd)){
+      cat(sprintf("\"%s\" \"%s\" \"%s\"\n","UPI of ", i, " is going down or has a dip at "))
+      print(data_mid_upi_i[j,2])
+      x_is_greater = FALSE
+    }
+    else if(x_is_greater == FALSE &&  data_mid_upi_i[j,6] > (data_mid_upi_i.median - data_mid_upi_i.sd)){
+      cat(sprintf("\"%s\" \"%s\" \"%s\"\n","UPI of ", i, " has recovered at "))
+      print(data_mid_upi_i[j,2])
+      x_is_greater = TRUE
+    }
+  }
+  print("-------------------------------------------------------------------")
+}
